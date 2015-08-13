@@ -1,10 +1,23 @@
+#include<random>
 #include<SFML/Window.hpp>
 #include<SFML/Graphics.hpp>
 
-constexpr int windowWidth{600}, windowHeight{400} ;
+auto monoGreen = sf::Color{0, 255 ,97} ;
+constexpr int windowWidth{700}, windowHeight{350} ;
 constexpr int fps{60} ;
-constexpr float ballRadius{5.f}, ballVelocity{6.f} ;
-constexpr float paddleWidth{70.f}, paddleHeight{5.f}, paddleVelocity{10.f} ;
+constexpr float ballRadius{5.f}, maxBallVelocity{9.f} ;
+constexpr float paddleWidth{70.f}, paddleHeight{5.f}, paddleVelocity{10.f}, paddleOffset{5.f} ;
+constexpr double probability{0.4} ;
+enum modes{ easy = 5, medium = 3, expert = 2  } ;
+
+//Difficulty
+constexpr float difficulty = float(modes{easy}) ;
+constexpr float ballVelocity = maxBallVelocity - difficulty ;
+
+// Generate randomness in AI movement
+std::random_device rd ;
+std::mt19937 rng(rd()) ;
+std::bernoulli_distribution d(probability) ;
 
 // Paddle Object
 struct Paddle{
@@ -22,7 +35,7 @@ struct Paddle{
         shape.setPosition(mx, my) ;
         shape.setSize({paddleWidth, paddleHeight}) ;
         shape.setOrigin(paddleWidth/2, paddleHeight/2) ;
-        shape.setFillColor(sf::Color::Yellow) ;
+        shape.setFillColor(monoGreen) ;
     }
     
     void update(){
@@ -51,12 +64,13 @@ struct AutoPaddle {
         shape.setPosition(mx, my) ;
         shape.setSize({paddleWidth, paddleHeight}) ;
         shape.setOrigin(paddleWidth/2, paddleHeight/2) ;
-        shape.setFillColor(sf::Color::Yellow) ;
+        shape.setFillColor(monoGreen) ;
     }
     
     void update(float ballPosition){
                 
-        if( (velocity.x < 0.f && left() > 0)  || (velocity.x > 0.f && right() < windowWidth) ) velocity.x = velocity.x ;
+        if( (velocity.x < 0.f && left() > 0)  || (velocity.x > 0.f && right() < windowWidth) ) 
+            velocity.x = bool(d(rng)) ? velocity.x/difficulty : velocity.x ;
         else velocity.x = 0.f ;
         
         shape.move(velocity) ;
@@ -85,7 +99,7 @@ struct Ball{
         shape.setRadius(ballRadius) ;
         shape.setPosition(mx, my) ;
         shape.setOrigin(ballRadius, ballRadius) ;
-        shape.setFillColor(sf::Color::Red) ;
+        shape.setFillColor(monoGreen) ;
     }
     
     void update(){
@@ -133,11 +147,11 @@ void testCollission(Ball& mBall, AutoPaddle& mPaddle){
 
 int main(){
 
-    sf::RenderWindow window{{windowWidth, windowHeight}, "Pong 0.1", sf::Style::Titlebar | sf::Style::Close} ;
+    sf::RenderWindow window{sf::VideoMode{windowWidth, windowHeight}, "Pong 0.1", sf::Style::Titlebar | sf::Style::Close} ;
     window.setFramerateLimit(fps) ;
     Ball ball{windowWidth/2.f, windowHeight/2.f} ;
-    Paddle player{windowWidth/2.f, windowHeight-10} ; 
-    AutoPaddle opponent{windowWidth/2.f, 10.f} ;   
+    Paddle player{windowWidth/2.f, windowHeight-paddleOffset} ; 
+    AutoPaddle opponent{windowWidth/2.f, paddleOffset} ;   
 
     while(true){
 
@@ -148,7 +162,10 @@ int main(){
         
         ball.update() ;
         player.update() ;
-        opponent.update(ball.x()) ;
+        
+        // AI reacts only if ball is moving towards it
+        if(ball.velocity.y < 0)
+            opponent.update(ball.x()) ;
         
         // Test for Collissions
         testCollission(ball, player) ;
