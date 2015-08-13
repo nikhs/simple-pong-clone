@@ -90,7 +90,7 @@ int main(){
     sf::RenderWindow window{{windowWidth, windowHeight}, "Pong 0.1"} ;
     window.setFramerateLimit(fps) ;
     Ball ball{windowWidth/2.f, windowHeight/2.f} ;
-    Paddle player{windowWidth/2.f, windowHeight-50} ;    
+    Paddle player{windowWidth/2.f, windowHeight-10} ;    
 
     while(true){
 
