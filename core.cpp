@@ -3,8 +3,8 @@
 
 constexpr int windowWidth{600}, windowHeight{400} ;
 constexpr int fps{60} ;
-constexpr float ballRadius{10.f}, ballVelocity{4.f} ;
-constexpr float paddleWidth{60.f}, paddleHeight{20.f}, paddleVelocity{10.f} ;
+constexpr float ballRadius{5.f}, ballVelocity{6.f} ;
+constexpr float paddleWidth{70.f}, paddleHeight{5.f}, paddleVelocity{10.f} ;
 
 // Paddle Object
 struct Paddle{
@@ -33,6 +33,40 @@ struct Paddle{
         
     }
     
+} ;
+
+// Paddle for PC
+struct AutoPaddle {
+    sf::RectangleShape shape ;
+    sf::Vector2f velocity{paddleVelocity, 0.f} ;
+    
+    float x()       { return shape.getPosition().x ; }
+    float y()       { return shape.getPosition().y ; }
+    float left()    { return x() - shape.getSize().x/2.f ; }
+    float right()   { return x() + shape.getSize().x/2.f ; }
+    float top()     { return y() - shape.getSize().y/2.f ; }
+    float bottom()  { return y() + shape.getSize().y/2.f ; }
+        
+    AutoPaddle(float mx, float my){
+        shape.setPosition(mx, my) ;
+        shape.setSize({paddleWidth, paddleHeight}) ;
+        shape.setOrigin(paddleWidth/2, paddleHeight/2) ;
+        shape.setFillColor(sf::Color::Yellow) ;
+    }
+    
+    void update(float ballPosition){
+                
+        if( (velocity.x < 0.f && left() > 0)  || (velocity.x > 0.f && right() < windowWidth) ) velocity.x = velocity.x ;
+        else velocity.x = 0.f ;
+        
+        shape.move(velocity) ;
+        
+        if( ballPosition - ballRadius < left()) velocity.x = -paddleVelocity ;
+        else if( ballPosition + ballRadius > right()) velocity.x = paddleVelocity ;
+        else velocity.x = 0.f ;
+
+    }
+
 } ;
 
 // Ball object
@@ -85,12 +119,25 @@ void testCollission(Ball& mBall, Paddle& mPaddle){
     
 }
 
+void testCollission(Ball& mBall, AutoPaddle& mPaddle){
+    if(!isIntersecting(mBall, mPaddle)) return ;
+    
+    // Push the ball in a direction otherwise
+    mBall.velocity.y = ballVelocity ;
+    
+    //Calculate x-velocity
+    if(mBall.x() < mPaddle.x()) mBall.velocity.x = -ballVelocity ;
+        else mBall.velocity.x = ballVelocity ;
+    
+}
+
 int main(){
 
-    sf::RenderWindow window{{windowWidth, windowHeight}, "Pong 0.1"} ;
+    sf::RenderWindow window{{windowWidth, windowHeight}, "Pong 0.1", sf::Style::Titlebar | sf::Style::Close} ;
     window.setFramerateLimit(fps) ;
     Ball ball{windowWidth/2.f, windowHeight/2.f} ;
-    Paddle player{windowWidth/2.f, windowHeight-10} ;    
+    Paddle player{windowWidth/2.f, windowHeight-10} ; 
+    AutoPaddle opponent{windowWidth/2.f, 10.f} ;   
 
     while(true){
 
@@ -101,12 +148,15 @@ int main(){
         
         ball.update() ;
         player.update() ;
+        opponent.update(ball.x()) ;
         
         // Test for Collissions
         testCollission(ball, player) ;
+        testCollission(ball, opponent) ;
         
         window.draw(ball.shape) ;
         window.draw(player.shape) ;
+        window.draw(opponent.shape) ;
         window.display() ;
     }
     
