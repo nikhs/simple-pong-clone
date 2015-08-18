@@ -9,7 +9,7 @@ const std::string fontPath{"res/OpenSans-Regular.ttf"}, soundCollide{"res/collid
 constexpr int windowWidth{700}, windowHeight{350} ;
 constexpr int fps{60} ;
 constexpr float ballRadius{5.f}, maxBallVelocity{9.f} ;
-constexpr float paddleWidth{70.f}, paddleHeight{5.f}, paddleVelocity{10.f}, paddleOffset{5.f} ;
+constexpr float paddleWidth{50.f}, paddleHeight{5.f}, paddleVelocity{10.f}, paddleOffset{5.f} ;
 constexpr double probability{0.4} ;
 enum modes{ easy = 5, medium = 3, expert = 2  } ;
 
@@ -17,6 +17,7 @@ enum modes{ easy = 5, medium = 3, expert = 2  } ;
 //Difficulty
 constexpr float difficulty = float(modes{easy}) ;
 constexpr float ballVelocity = maxBallVelocity - difficulty ;
+constexpr float autoPaddleVelocity = paddleVelocity - ( difficulty * paddleVelocity * 0.05) ;
 
 // Generate randomness in AI movement
 std::random_device rd ;
@@ -55,7 +56,7 @@ struct Paddle{
 // Paddle for PC
 struct AutoPaddle {
     sf::RectangleShape shape ;
-    sf::Vector2f velocity{paddleVelocity, 0.f} ;
+    sf::Vector2f velocity{autoPaddleVelocity , 0.f} ; //Autopaddle has velocity subtracted by multiples of 5% of max velocity
     
     float x()       { return shape.getPosition().x ; }
     float y()       { return shape.getPosition().y ; }
@@ -79,8 +80,8 @@ struct AutoPaddle {
         
         shape.move(velocity) ;
         
-        if( ballPosition - ballRadius < left()) velocity.x = -paddleVelocity ;
-        else if( ballPosition + ballRadius > right()) velocity.x = paddleVelocity ;
+        if( ballPosition - ballRadius < left()) velocity.x = -autoPaddleVelocity ;
+        else if( ballPosition + ballRadius > right()) velocity.x = autoPaddleVelocity ;
         else velocity.x = 0.f ;
 
     }
@@ -96,6 +97,7 @@ struct Ball{
     sf::Sound collide, score ;
 
     unsigned short playerScore{0}, opponentScore{0} ; // Score 
+    bool scored{false} ;
         
     float x()       { return shape.getPosition().x ; }
     float y()       { return shape.getPosition().y ; }
@@ -136,12 +138,14 @@ struct Ball{
         if( bottom() < 0 ){
             score.play() ;
             ++opponentScore ;
+            scored = true ;
             shape.setPosition(windowWidth/2.f, windowHeight/2.f) ;
         }
         
         if( top() > windowHeight ){
             score.play() ;
             ++playerScore ;
+            scored = true ;
             shape.setPosition(windowWidth/2.f, windowHeight/2.f) ;
         }
         
@@ -215,7 +219,7 @@ int main(){
     pScore.setPosition(5.f, uy+50.f);
     oScore.setPosition(5.f, uy+100.f) ;
 
-//    sf::Time delay{sf::seconds(1.0f)} ; // For delay
+    sf::Time delay{sf::seconds(1.0f)} ; // For delay before next round
 
     // Window
     sf::RenderWindow window{sf::VideoMode{windowWidth, windowHeight}, "Pong 1.0", sf::Style::Titlebar | sf::Style::Close} ;
@@ -252,9 +256,9 @@ int main(){
                 break ;
         }
         
-        // Update Score
-        sfTextInit(pScore, font, std::to_string(ball.playerScore), 30, monoGreen) ;
-        sfTextInit(oScore, font, std::to_string(ball.opponentScore), 30, monoGreen) ;
+            // Update Score
+            sfTextInit(pScore, font, std::to_string(ball.playerScore), 30, monoGreen) ;
+            sfTextInit(oScore, font, std::to_string(ball.opponentScore), 30, monoGreen) ;
         
         if(running){
         
@@ -282,7 +286,12 @@ int main(){
         window.draw(pScore) ;
         window.draw(oScore) ;      
         window.display() ;
-                            
+        
+        if( ball.scored ){
+            ball.scored = false ;
+            sf::sleep(delay) ;
+        }
+        
     }
     
     
