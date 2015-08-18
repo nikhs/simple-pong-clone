@@ -10,3 +10,9 @@ all : obj
 
 obj : 
 	$(CC) -c $(SOURCE) $(FLAGS)
+
+dist : permission
+	tar -cvzf dist.tar.gz res $(OUTPUT)
+
+permission : all
+	chmod +x $(OUTPUT)
